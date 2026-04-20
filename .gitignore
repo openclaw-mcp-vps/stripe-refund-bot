@@ -1,0 +1,8 @@
+node_modules
+.next
+out
+.env
+.vercel
+*.log
+.DS_Store
+data/refundbot-db.json

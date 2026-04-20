@@ -1,0 +1,10 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0d1117"/>
+  <rect x="60" y="70" width="1080" height="490" rx="28" fill="#101826" stroke="#2f3b4c"/>
+  <text x="120" y="220" fill="#e6edf3" font-size="72" font-family="Inter, Arial, sans-serif" font-weight="700">Stripe Refund Bot</text>
+  <text x="120" y="290" fill="#9fb2c8" font-size="34" font-family="Inter, Arial, sans-serif">AI assistant for inbox-driven refund operations</text>
+  <rect x="120" y="360" width="310" height="66" rx="16" fill="#f59e0b"/>
+  <text x="170" y="404" fill="#111111" font-size="30" font-family="Inter, Arial, sans-serif" font-weight="700">Auto-refund safe cases</text>
+  <rect x="470" y="360" width="340" height="66" rx="16" fill="#153d2f"/>
+  <text x="520" y="404" fill="#8fe3b4" font-size="30" font-family="Inter, Arial, sans-serif" font-weight="700">Human queue for edge cases</text>
+</svg>

@@ -1,0 +1,2 @@
+// This project intentionally avoids Prisma runtime usage to keep deployment simple on Vercel.
+// Data persistence is handled in data/refundbot-db.json via lib/db.ts.
