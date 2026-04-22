@@ -1,55 +1,121 @@
-import Link from "next/link";
-import { Activity, ArrowLeft, Inbox, Workflow } from "lucide-react";
-import { EmailSetup } from "@/components/email-setup";
-import { RefundQueue } from "@/components/refund-queue";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { hasAccessCookie } from "@/lib/access";
+import { getDashboardState } from "@/lib/database";
+import ConnectEmail from "@/components/ConnectEmail";
+import ConnectStripe from "@/components/ConnectStripe";
+import PolicySettings from "@/components/PolicySettings";
+import RefundQueue from "@/components/RefundQueue";
 
-export default function DashboardPage() {
-  return (
-    <main className="mx-auto min-h-screen w-full max-w-6xl px-6 py-8 sm:px-10">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <Badge className="border-emerald-400/30 bg-emerald-500/15 text-emerald-200">Dashboard Access Active</Badge>
-          <h1 className="mt-3 text-3xl font-bold sm:text-4xl">Refund Operations Console</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[#a9bcd1]">
-            Monitor inbound refund requests, approve edge cases, and keep a complete action trail for Stripe and email responses.
+export const dynamic = "force-dynamic";
+
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD"
+  }).format(value);
+}
+
+export default async function DashboardPage() {
+  const dashboard = await getDashboardState();
+  const hasAccess = await hasAccessCookie();
+  const paymentLink = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK;
+
+  if (!hasAccess) {
+    return (
+      <main className="min-h-screen bg-[var(--bg)] px-6 py-12 text-[var(--text)] md:px-10">
+        <div className="mx-auto w-full max-w-3xl space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-8">
+          <h1 className="text-3xl font-semibold">Dashboard Locked</h1>
+          <p className="text-[var(--text-muted)]">
+            This workflow is behind a paid access cookie. Complete checkout, then claim dashboard access
+            with the same purchase email.
+          </p>
+
+          {paymentLink ? (
+            <a
+              href={paymentLink}
+              className="inline-flex rounded-xl bg-[var(--primary)] px-5 py-3 font-semibold text-[var(--primary-contrast)] transition hover:brightness-110"
+            >
+              Buy Access on Stripe
+            </a>
+          ) : (
+            <p className="rounded-xl border border-[var(--danger)] bg-[#2a1414] px-4 py-3 text-sm text-[#ffb4af]">
+              Missing NEXT_PUBLIC_STRIPE_PAYMENT_LINK in environment variables.
+            </p>
+          )}
+
+          <form action="/api/paywall/claim" method="post" className="grid gap-3">
+            <label className="text-sm">
+              Purchase email
+              <input
+                type="email"
+                name="email"
+                required
+                placeholder="you@company.com"
+                className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-soft)] px-3 py-2"
+              />
+            </label>
+            <button
+              type="submit"
+              className="w-fit rounded-xl border border-[var(--border)] bg-[var(--bg-soft)] px-4 py-2 text-sm font-semibold transition hover:border-[var(--accent)]"
+            >
+              Claim Dashboard Access
+            </button>
+          </form>
+
+          <p className="text-xs text-[var(--text-muted)]">
+            Access is granted when your email is found in Stripe `checkout.session.completed` events.
           </p>
         </div>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-[#0f1622] px-4 py-2 text-sm font-medium text-[#d0e0f2] hover:bg-[#162034]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Site
-        </Link>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[var(--bg)] px-6 py-10 text-[var(--text)] md:px-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold">Refund Operations Dashboard</h1>
+            <p className="mt-2 text-[var(--text-muted)]">
+              AI-assisted refunds for Stripe purchases from your support inbox.
+            </p>
+          </div>
+          <form action="/api/paywall/logout" method="post">
+            <button
+              type="submit"
+              className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2 text-sm font-semibold"
+            >
+              Lock Dashboard
+            </button>
+          </form>
+        </header>
+
+        <section className="grid gap-4 md:grid-cols-4">
+          <article className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Total Requests</p>
+            <p className="mt-2 text-3xl font-semibold">{dashboard.metrics.totalRequests}</p>
+          </article>
+          <article className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Auto Refunded</p>
+            <p className="mt-2 text-3xl font-semibold">{dashboard.metrics.autoRefunded}</p>
+          </article>
+          <article className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Needs Review</p>
+            <p className="mt-2 text-3xl font-semibold">{dashboard.metrics.pendingReview}</p>
+          </article>
+          <article className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">Refunded Value</p>
+            <p className="mt-2 text-3xl font-semibold">{formatUsd(dashboard.metrics.refundedUsd)}</p>
+          </article>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-2">
+          <ConnectStripe integration={dashboard.integrations.stripe} />
+          <ConnectEmail integration={dashboard.integrations.email} />
+        </section>
+
+        <PolicySettings initialPolicy={dashboard.policy} />
+        <RefundQueue initialCases={dashboard.refunds} />
       </div>
-
-      <section className="mb-8 grid gap-4 sm:grid-cols-3">
-        <Card className="border-white/10 bg-[#111826]/90">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Inbox className="h-4 w-4 text-cyan-300" />Inbox Pipeline</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-[#9fb2c8]">Capture refund requests from forwarded emails or IMAP polling jobs.</CardContent>
-        </Card>
-        <Card className="border-white/10 bg-[#111826]/90">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Workflow className="h-4 w-4 text-amber-300" />Decision Engine</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-[#9fb2c8]">AI verdicts combine policy checks and Stripe data to recommend action.</CardContent>
-        </Card>
-        <Card className="border-white/10 bg-[#111826]/90">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Activity className="h-4 w-4 text-emerald-300" />Live Queue</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-[#9fb2c8]">Approve uncertain requests in one click while safe cases can auto-refund.</CardContent>
-        </Card>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <RefundQueue />
-        <EmailSetup />
-      </section>
     </main>
   );
 }

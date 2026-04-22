@@ -1,201 +1,169 @@
-import Link from "next/link";
-import Script from "next/script";
-import { ArrowRight, Bot, MailCheck, ShieldCheck, Wallet } from "lucide-react";
-import { PurchaseAccess } from "@/components/purchase-access";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getLemonCheckoutUrl } from "@/lib/lemonsqueezy";
-
-const faqs = [
+const faqItems = [
   {
-    question: "How does the bot decide whether a refund is legitimate?",
+    question: "How does Stripe Refund Bot decide whether to auto-refund?",
     answer:
-      "It combines policy checks (purchase exists, window valid, prior refund history) with an AI analysis of the customer email. High-confidence approvals can auto-refund, while ambiguous requests are routed to your queue."
+      "Every request is checked against Stripe payment data, purchase timestamp, refund-window rules, and your high-risk keyword list. Only requests that pass all checks are auto-refunded."
   },
   {
-    question: "Can I keep final control over refunds?",
+    question: "What goes to manual review?",
     answer:
-      "Yes. You can require human approval for every refund, or only for low-confidence and policy-edge cases."
+      "Anything outside policy: missing order references, high-dollar requests, keywords like chargeback/fraud, excluded products, or missing Stripe matches."
   },
   {
-    question: "Does this support Stripe subscriptions and one-time charges?",
+    question: "Do customers still get a human-sounding response?",
     answer:
-      "Yes. The Stripe integration validates either payment source and returns the exact charge data needed to issue a compliant refund."
+      "Yes. The bot drafts a response with refund status and expected bank settlement timing. You can customize the tone and template in the dashboard."
   },
   {
-    question: "How quickly can I be live?",
+    question: "Can I run this in test mode first?",
     answer:
-      "Most founders are processing real requests in under 30 minutes by forwarding refund emails to the app and adding Stripe keys."
+      "Yes. Connect a Stripe test key, forward sample inbox events to the webhook endpoint, and validate end-to-end behavior before enabling production mode."
   }
 ];
 
-const pricing = [
+const pricingTiers = [
   {
     name: "Starter",
-    price: "$25",
-    period: "/month",
-    volume: "Up to 100 refunds/month",
-    points: [
-      "Inbox-driven refund triage",
-      "Stripe legitimacy checks",
-      "AI-written reply drafts",
-      "Human approval queue"
-    ]
+    price: "$25/mo",
+    description: "For founders handling refund operations themselves.",
+    volume: "100 refunds/month",
+    bullets: ["Stripe + inbox integration", "AI triage and policy checks", "Manual-review queue"]
   },
   {
     name: "Growth",
-    price: "$79",
-    period: "/month",
-    volume: "Up to 500 refunds/month",
-    points: [
-      "Everything in Starter",
-      "Auto-approval thresholds",
-      "Priority processing",
-      "Weekly operations insights"
-    ]
+    price: "$79/mo",
+    description: "For support-heavy SaaS teams with steady refund volume.",
+    volume: "500 refunds/month",
+    bullets: ["Everything in Starter", "Priority webhook processing", "Advanced policy controls"]
   }
 ];
 
 export default function HomePage() {
-  const checkoutUrl = getLemonCheckoutUrl();
+  const paymentLink = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-6xl px-6 py-10 sm:px-10">
-      <Script src="https://app.lemonsqueezy.com/js/lemon.js" strategy="lazyOnload" />
-
-      <section className="rounded-3xl border border-white/10 bg-[#111826]/90 p-8 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_30px_100px_rgba(0,0,0,0.45)] sm:p-12">
-        <div className="mb-5 flex flex-wrap items-center gap-3">
-          <Badge className="border-amber-400/40 bg-amber-500/20 text-amber-200">fintech-automation</Badge>
-          <Badge className="border-cyan-400/40 bg-cyan-500/15 text-cyan-200">email-first workflow</Badge>
-          <Badge className="border-emerald-400/40 bg-emerald-500/15 text-emerald-200">human-in-loop safety</Badge>
-        </div>
-
-        <h1 className="max-w-4xl text-4xl font-extrabold leading-tight sm:text-6xl">
-          Stripe Refund Bot
-          <span className="mt-1 block text-2xl text-[#9fb2c8] sm:text-3xl">
-            AI assistant that handles refund requests in your inbox
-          </span>
-        </h1>
-
-        <p className="mt-6 max-w-3xl text-lg text-[#c8d6e5]">
-          Every refund request costs 10–15 minutes of founder attention. Stripe Refund Bot reads incoming requests,
-          confirms the purchase and policy window, drafts the exact reply, and issues refunds when confidence is high.
-          Edge cases are queued for your one-click approval.
+    <main className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 pb-20 pt-16 md:px-10 md:pt-24">
+        <p className="inline-flex w-fit rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-1 text-xs tracking-[0.16em] text-[var(--text-muted)] uppercase">
+          Fintech Automation
         </p>
 
-        <div className="mt-8 grid gap-3 text-sm text-[#aabed4] sm:grid-cols-3">
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">30 refunds/month at 10 minutes each is roughly 5 founder hours recovered.</div>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">Built for SaaS founders at $5k+ MRR with recurring refund load.</div>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">Auditable actions, webhook event log, and policy-aware decisions.</div>
-        </div>
+        <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-end">
+          <div className="space-y-6">
+            <h1
+              className="max-w-3xl text-4xl leading-tight font-semibold md:text-6xl"
+              style={{ fontFamily: "var(--font-fraunces), serif" }}
+            >
+              Stripe Refund Bot handles refund requests in your inbox before they eat your weekend.
+            </h1>
+            <p className="max-w-2xl text-lg text-[var(--text-muted)] md:text-xl">
+              Connect Stripe plus email. The assistant reads refund requests, confirms the purchase,
+              validates policy, issues legitimate refunds, and drafts the customer reply. Edge cases are
+              routed to your queue with full context.
+            </p>
+            <div className="flex flex-wrap items-center gap-4">
+              {paymentLink ? (
+                <a
+                  href={paymentLink}
+                  className="rounded-xl bg-[var(--primary)] px-6 py-3 font-semibold text-[var(--primary-contrast)] transition hover:brightness-110"
+                >
+                  Buy Now on Stripe
+                </a>
+              ) : (
+                <span className="rounded-xl border border-[var(--danger)] bg-[#2a1414] px-6 py-3 text-sm text-[#ffb4af]">
+                  Add NEXT_PUBLIC_STRIPE_PAYMENT_LINK to enable checkout.
+                </span>
+              )}
+              <a
+                href="/dashboard"
+                className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-6 py-3 font-semibold text-[var(--text)] transition hover:border-[var(--accent)]"
+              >
+                Open Dashboard
+              </a>
+            </div>
+          </div>
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Button asChild size="lg" className="bg-amber-500 text-black hover:bg-amber-400">
-            <Link href="/dashboard">
-              Open Dashboard
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="border-white/20 bg-transparent hover:bg-white/5">
-            <a href="#pricing">See Pricing</a>
-          </Button>
-        </div>
-      </section>
-
-      <section className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-white/10 bg-[#10151f]/95">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><MailCheck className="h-4 w-4 text-cyan-300" />Inbox ingestion</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-[#9fb2c8]">Capture refund emails from Gmail API, IMAP, or forwarder webhook.</CardContent>
-        </Card>
-        <Card className="border-white/10 bg-[#10151f]/95">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><ShieldCheck className="h-4 w-4 text-emerald-300" />Legitimacy checks</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-[#9fb2c8]">Verify Stripe purchase, policy window, and fraud signals before action.</CardContent>
-        </Card>
-        <Card className="border-white/10 bg-[#10151f]/95">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Wallet className="h-4 w-4 text-amber-300" />Automated refunds</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-[#9fb2c8]">Issue Stripe refunds instantly for high-confidence requests.</CardContent>
-        </Card>
-        <Card className="border-white/10 bg-[#10151f]/95">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Bot className="h-4 w-4 text-fuchsia-300" />Human-in-loop</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-[#9fb2c8]">Ambiguous cases are queued with rationale and recommended next action.</CardContent>
-        </Card>
-      </section>
-
-      <section className="mt-12 rounded-3xl border border-white/10 bg-[#111826]/80 p-8">
-        <h2 className="text-2xl font-bold sm:text-3xl">Why founders buy this</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <Card className="border-white/10 bg-black/20">
-            <CardHeader><CardTitle className="text-lg">Problem</CardTitle></CardHeader>
-            <CardContent className="text-sm text-[#b3c2d4]">Refund requests hit your inbox at random times, forcing context switches and manual Stripe checks.</CardContent>
-          </Card>
-          <Card className="border-white/10 bg-black/20">
-            <CardHeader><CardTitle className="text-lg">Solution</CardTitle></CardHeader>
-            <CardContent className="text-sm text-[#b3c2d4]">One webhook pipeline analyzes each request, verifies Stripe facts, and routes to auto-refund or approval queue.</CardContent>
-          </Card>
-          <Card className="border-white/10 bg-black/20">
-            <CardHeader><CardTitle className="text-lg">Outcome</CardTitle></CardHeader>
-            <CardContent className="text-sm text-[#b3c2d4]">You handle exceptions only. Routine refunds become a background process with traceable decisions.</CardContent>
-          </Card>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+            <p className="text-sm text-[var(--text-muted)]">Founder math</p>
+            <p className="mt-2 text-3xl font-semibold">5 hours/month saved</p>
+            <p className="mt-3 text-sm text-[var(--text-muted)]">
+              Manual refunds average 10-15 minutes. At 30 requests/month, that is 300-450 minutes of
+              repetitive ops work that can be automated.
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-soft)] p-3">
+                <p className="text-[var(--text-muted)]">Ideal customer</p>
+                <p className="mt-1 font-medium">SaaS founders, $5k+ MRR</p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-soft)] p-3">
+                <p className="text-[var(--text-muted)]">Volume</p>
+                <p className="mt-1 font-medium">20+ refunds/month</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section id="pricing" className="mt-12">
-        <div className="mb-5 flex items-end justify-between gap-3">
-          <h2 className="text-2xl font-bold sm:text-3xl">Pricing</h2>
-          <span className="text-sm text-[#a8bdd3]">Cancel anytime</span>
+      <section className="border-y border-[var(--border)] bg-[var(--bg-elevated)]">
+        <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-14 md:grid-cols-3 md:px-10">
+          <article>
+            <h2 className="text-xl font-semibold">The Problem</h2>
+            <p className="mt-3 text-[var(--text-muted)]">
+              Refund requests arrive across threads, formats, and urgency levels. Founders stop product work
+              to verify orders, check policy windows, and reply manually.
+            </p>
+          </article>
+          <article>
+            <h2 className="text-xl font-semibold">The Solution</h2>
+            <p className="mt-3 text-[var(--text-muted)]">
+              Refund Bot standardizes every request into one queue, runs policy checks automatically,
+              performs safe refunds, and leaves only ambiguous decisions for humans.
+            </p>
+          </article>
+          <article>
+            <h2 className="text-xl font-semibold">The Outcome</h2>
+            <p className="mt-3 text-[var(--text-muted)]">
+              Faster customer response times, consistent refund handling, and a support workflow that scales
+              without hiring a full-time operator.
+            </p>
+          </article>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {pricing.map((plan) => (
-            <Card key={plan.name} className="border-white/10 bg-[#10151f]/95">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-xl">
-                  {plan.name}
-                  <span className="text-sm text-[#9fb2c8]">{plan.volume}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-4xl font-bold">
-                  {plan.price}
-                  <span className="text-base font-medium text-[#9fb2c8]">{plan.period}</span>
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-[#c1d2e6]">
-                  {plan.points.map((point) => (
-                    <li key={point}>• {point}</li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-6 py-16 md:px-10">
+        <h2 className="text-3xl font-semibold" style={{ fontFamily: "var(--font-fraunces), serif" }}>
+          Pricing
+        </h2>
+        <div className="mt-8 grid gap-5 md:grid-cols-2">
+          {pricingTiers.map((tier) => (
+            <article
+              key={tier.name}
+              className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6"
+            >
+              <p className="text-sm tracking-[0.08em] text-[var(--text-muted)] uppercase">{tier.name}</p>
+              <p className="mt-3 text-4xl font-semibold">{tier.price}</p>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">{tier.volume}</p>
+              <p className="mt-4 text-sm text-[var(--text-muted)]">{tier.description}</p>
+              <ul className="mt-4 space-y-2 text-sm text-[var(--text)]">
+                {tier.bullets.map((item) => (
+                  <li key={item}>• {item}</li>
+                ))}
+              </ul>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="mt-12 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 sm:p-8">
-        <h2 className="text-2xl font-bold sm:text-3xl">Unlock the refund dashboard</h2>
-        <p className="mt-2 max-w-3xl text-sm text-[#cfdced]">
-          Pay once via Lemon Squeezy checkout. After payment, use the same billing email to unlock your dashboard with a secure access cookie.
-        </p>
-        <PurchaseAccess checkoutUrl={checkoutUrl} />
-      </section>
-
-      <section className="mt-12 rounded-3xl border border-white/10 bg-[#10151f]/90 p-8">
-        <h2 className="text-2xl font-bold sm:text-3xl">FAQ</h2>
-        <div className="mt-6 space-y-4">
-          {faqs.map((faq) => (
-            <Card key={faq.question} className="border-white/10 bg-black/20">
-              <CardHeader>
-                <CardTitle className="text-base">{faq.question}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-[#b7cadf]">{faq.answer}</CardContent>
-            </Card>
+      <section className="mx-auto w-full max-w-6xl px-6 pb-24 md:px-10">
+        <h2 className="text-3xl font-semibold" style={{ fontFamily: "var(--font-fraunces), serif" }}>
+          FAQ
+        </h2>
+        <div className="mt-8 grid gap-4">
+          {faqItems.map((item) => (
+            <article key={item.question} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-5">
+              <h3 className="text-lg font-semibold">{item.question}</h3>
+              <p className="mt-2 text-sm text-[var(--text-muted)]">{item.answer}</p>
+            </article>
           ))}
         </div>
       </section>

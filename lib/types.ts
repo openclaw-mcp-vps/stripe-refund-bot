@@ -1,69 +1,101 @@
-export type AnalysisVerdict = "approve" | "reject" | "needs_human";
-
-export type RefundStatus =
-  | "pending"
-  | "needs_human"
+export type RefundCaseStatus =
+  | "queued"
   | "processing"
   | "refunded"
+  | "needs_review"
   | "rejected"
   | "failed";
 
-export type RefundAnalysis = {
-  verdict: AnalysisVerdict;
+export interface RefundPolicy {
+  refundWindowDays: number;
+  maxAutoRefundAmountCents: number;
+  requireOrderIdentifier: boolean;
+  blockHighRiskLanguage: boolean;
+  blockedKeywords: string[];
+  excludedProductKeywords: string[];
+  autoReplyTemplate: string;
+}
+
+export interface ParsedRefundRequest {
+  messageId: string;
+  receivedAt: string;
+  senderEmail: string;
+  subject: string;
+  messageText: string;
+  orderId: string | null;
+  stripeChargeId: string | null;
+  paymentIntentId: string | null;
+  requestedAmountCents: number | null;
+  reason: string | null;
+  isLikelyRefundRequest: boolean;
+}
+
+export interface RefundAnalysis {
+  classification: "refund_request" | "not_refund" | "unclear";
   confidence: number;
+  summary: string;
   rationale: string;
   riskFlags: string[];
-};
+  recommendedAction: "auto_refund" | "manual_review" | "reject";
+}
 
-export type PurchaseCheck = {
-  purchaseFound: boolean;
-  withinPolicy: boolean;
-  policyDays: number;
-  reason: string;
-  amountCents: number | null;
-  currency: string | null;
-  purchasedAt: string | null;
-};
-
-export type RefundRequest = {
-  id: string;
-  source: string;
-  messageId: string | null;
-  customerEmail: string;
-  subject: string;
-  body: string;
-  reasonSummary: string;
-  status: RefundStatus;
+export interface StripeSnapshot {
   chargeId: string | null;
   paymentIntentId: string | null;
-  analysis: RefundAnalysis;
-  purchase: PurchaseCheck;
+  amountCents: number | null;
+  amountRefundedCents: number | null;
+  currency: string | null;
+  purchasedAt: string | null;
   refundId: string | null;
-  refundFailureReason: string | null;
-  responseDraft: string | null;
-  responseSentAt: string | null;
+}
+
+export interface RefundCase {
+  id: string;
   createdAt: string;
   updatedAt: string;
-};
+  source: "email_webhook" | "manual";
+  status: RefundCaseStatus;
+  decisionReason: string;
+  manualReviewRequired: boolean;
+  senderEmail: string;
+  subject: string;
+  message: string;
+  parsed: ParsedRefundRequest;
+  analysis: RefundAnalysis;
+  stripe: StripeSnapshot;
+  processedAt: string | null;
+  reviewedByHumanAt: string | null;
+}
 
-export type AccessGrant = {
+export interface StripeIntegrationState {
+  connected: boolean;
+  accountLabel: string | null;
+  mode: "test" | "live" | "unknown";
+  lastCheckedAt: string | null;
+}
+
+export interface EmailIntegrationState {
+  connected: boolean;
+  provider: "gmail_forwarding" | "sendgrid" | "postmark" | "custom";
+  inboundAddress: string;
+  lastWebhookAt: string | null;
+}
+
+export interface IntegrationState {
+  stripe: StripeIntegrationState;
+  email: EmailIntegrationState;
+}
+
+export interface PaidCustomer {
   email: string;
-  grantedAt: string;
-  source: "lemonsqueezy_webhook" | "manual";
-  orderId: string | null;
-  eventName: string | null;
-};
-
-export type EventLogEntry = {
-  id: string;
-  source: "stripe" | "lemonsqueezy" | "email" | "system";
-  eventType: string;
-  payload: Record<string, unknown>;
+  source: "stripe_webhook" | "stripe_lookup";
+  checkoutSessionId: string | null;
   createdAt: string;
-};
+}
 
-export type AppDatabase = {
-  refundRequests: RefundRequest[];
-  accessGrants: AccessGrant[];
-  eventLog: EventLogEntry[];
-};
+export interface AppDatabase {
+  policy: RefundPolicy;
+  integrations: IntegrationState;
+  refunds: RefundCase[];
+  paidCustomers: PaidCustomer[];
+}

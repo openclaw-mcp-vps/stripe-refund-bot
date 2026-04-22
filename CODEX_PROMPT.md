@@ -11,24 +11,25 @@ NICHE: fintech-automation
 PRICE: $$25/mo for 100 refunds, $79/mo for 500/mo
 
 ARCHITECTURE SPEC:
-Email-first SaaS with webhook-driven architecture. IMAP/Gmail API monitors inbox for refund requests, OpenAI analyzes legitimacy against Stripe data, auto-processes valid refunds with human approval queue for edge cases.
+Email-monitoring SaaS that connects to user's email inbox and Stripe account via webhooks/APIs. When refund requests are detected, AI analyzes the request against Stripe transaction data and refund policies, then either auto-processes legitimate refunds or flags edge cases for human review.
 
 PLANNED FILES:
 - app/page.tsx
 - app/dashboard/page.tsx
-- app/api/webhooks/stripe/route.ts
-- app/api/webhooks/lemonsqueezy/route.ts
-- app/api/email/process/route.ts
-- app/api/refunds/approve/route.ts
-- lib/email-monitor.ts
-- lib/stripe-client.ts
-- lib/openai-analyzer.ts
-- lib/refund-processor.ts
-- components/refund-queue.tsx
-- components/email-setup.tsx
+- app/api/stripe/webhook/route.ts
+- app/api/email/webhook/route.ts
+- app/api/refunds/process/route.ts
+- components/ConnectStripe.tsx
+- components/ConnectEmail.tsx
+- components/RefundQueue.tsx
+- components/PolicySettings.tsx
+- lib/stripe.ts
+- lib/email-parser.ts
+- lib/ai-analyzer.ts
+- lib/database.ts
 - prisma/schema.prisma
 
-DEPENDENCIES: next, tailwindcss, @prisma/client, stripe, openai, imap, @lemonsqueezy/lemonsqueezy.js, nodemailer, zod, next-auth
+DEPENDENCIES: next, tailwindcss, stripe, prisma, @prisma/client, openai, nodemailer, zod, @lemonsqueezy/lemonsqueezy.js, next-auth, react-hook-form
 
 REQUIREMENTS:
 - Next.js 15 with App Router (app/ directory)
@@ -36,7 +37,7 @@ REQUIREMENTS:
 - Tailwind CSS v4
 - shadcn/ui components (npx shadcn@latest init, then add needed components)
 - Dark theme ONLY — background #0d1117, no light mode
-- Lemon Squeezy checkout overlay for payments
+- Stripe Payment Link for payments (hosted checkout — use the URL directly as the Buy button href)
 - Landing page that converts: hero, problem, solution, pricing, FAQ
 - The actual tool/feature behind a paywall (cookie-based access after purchase)
 - Mobile responsive
@@ -56,9 +57,13 @@ REQUIREMENTS:
   to package.json dependencies and re-run npm install + npm run build until it passes.
 
 ENVIRONMENT VARIABLES (create .env.example):
-- NEXT_PUBLIC_LEMON_SQUEEZY_STORE_ID
-- NEXT_PUBLIC_LEMON_SQUEEZY_PRODUCT_ID
-- LEMON_SQUEEZY_WEBHOOK_SECRET
+- NEXT_PUBLIC_STRIPE_PAYMENT_LINK  (full URL, e.g. https://buy.stripe.com/test_XXX)
+- NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY  (pk_test_... or pk_live_...)
+- STRIPE_WEBHOOK_SECRET  (set when webhook is wired)
+
+BUY BUTTON RULE: the Buy button's href MUST be `process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK`
+used as-is — do NOT construct URLs from a product ID, do NOT prepend any base URL,
+do NOT wrap it in an embed iframe. The link opens Stripe's hosted checkout directly.
 
 After creating all files:
 1. Run: npm install
